@@ -1,3 +1,22 @@
+# wizard-ahe — private AHE lab for evolving the wizard agent harness
+
+A private lab that uses **Agentic Harness Engineering (AHE)** to recursively improve [wizard](https://github.com/teddytennant/wizard)'s harness: its system prompt, tool descriptions, skills, and subagents evolve through AHE's `evaluate → analyze → improve` loop, and winning bundles are reviewed and merged back into wizard as new compiled defaults.
+
+## Attribution
+
+This repository is a derivative of **Agentic Harness Engineering** by **Curry09 (Jiahang Lin)** and contributors — all credit for the AHE methodology, the evolve/debugger agents, and the original framework goes to them:
+
+- **Upstream repository:** https://github.com/china-qijizhifeng/agentic-harness-engineering
+- **Paper:** [Agentic Harness Engineering: Observability-Driven Automatic Evolution of Coding-Agent Harnesses](https://arxiv.org/abs/2604.25850) (arXiv:2604.25850)
+- **Built on:** [NexAU](https://github.com/nex-agi/NexAU) by Nex-AGI
+- **License:** MIT (upstream copyright retained in [LICENSE](LICENSE))
+
+This fork adds the wizard integration: `agents/wizard_agent/` (harbor adapter running the wizard CLI), `agents/wizard_harness/` (the evolvable harness bundle), `configs/experiments/exp-wizard*.yaml`, `dataset/wizard/`, and local Docker evaluation. See [docs/WIZARD-AHE.md](docs/WIZARD-AHE.md) for how the loop works here.
+
+---
+
+The original upstream README follows.
+
 # Agentic Harness Engineering: Observability-Driven Automatic Evolution of Coding-Agent Harnesses
 
 <div align="left">
