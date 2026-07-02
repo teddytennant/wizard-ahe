@@ -1,0 +1,42 @@
+_base: "../base.yaml"
+_name: "wizard-slice"
+_description: "3-task slice of dataset/wizard, 2 iterations: proves the evolve-edit machinery (analysis, bundle edits, rollback) on real tasks before a full run."
+_tags: ["wizard", "docker", "slice"]
+
+path: "./dataset/wizard"
+task_names: ["even-sum", "csv-report", "state-machine"]
+
+max_iterations: 2
+# Force iteration 2 even on a good baseline so an evolve edit actually runs.
+target_pass_rate: 1.0
+
+llm:
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL}"
+  model: "${LLM_MODEL}"
+
+harbor:
+  agent: "wizard"
+  agent_import_path: "agents.wizard_agent.adapter:WizardAgent"
+  env: "docker"
+  k: 1
+  n_concurrent: 2
+  force_build: false
+
+source_config_dir: "agents/wizard_harness"
+agent_config_filename: "system_prompt.md"
+code_agent_patch: {}
+
+evolve_agent:
+  tool_call_mode: openai
+  llm_config:
+    api_type: openai_chat_completion
+
+agent_debugger:
+  enabled: false
+
+explore_agent:
+  enabled: false
+
+notify:
+  enabled: false

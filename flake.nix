@@ -39,8 +39,11 @@
           ];
 
           # Runs in the image root while building the customisation layer.
+          # /usr/local/bin must exist: harbor `docker compose cp`s the
+          # agent binary to /usr/local/bin/wizard and cp fails if the
+          # parent directory is missing.
           extraCommands = ''
-            mkdir -p tmp app logs
+            mkdir -p tmp app logs usr/local/bin root
             chmod 1777 tmp
           '';
 
@@ -48,6 +51,9 @@
             Env = [
               "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
               "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
+              # fakeNss gives root a /var/empty home; agents expect ~/.wizard
+              # etc. under /root (matching Debian-based images).
+              "HOME=/root"
             ];
             WorkingDir = "/app";
             Cmd = [ "/bin/bash" ];
