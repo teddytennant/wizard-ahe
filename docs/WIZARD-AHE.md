@@ -56,6 +56,19 @@ the run.
 
 ## Run it
 
+The easy path is the CLI — `./install.sh` (or the one-liner in the README)
+builds `ahe`, adds it to PATH, and walks you through endpoint/model/key,
+the wizard build, and the task image:
+
+```bash
+ahe setup
+ahe run --config wizard-smoke   # wiring gate
+ahe run -i 2 --tasks even-sum,csv-report,state-machine   # slice
+ahe run                         # full loop with live progress
+```
+
+Everything below is the manual equivalent (what `ahe` does under the hood):
+
 ```bash
 # 0. Build wizard from the harness-bundle branch — STATIC MUSL, so the binary
 #    runs inside any task container (Debian- or Nix-based; a host-linked build
