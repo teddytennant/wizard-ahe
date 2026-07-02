@@ -57,9 +57,19 @@ the run.
 ## Run it
 
 ```bash
-# 0. Build wizard from the harness-bundle branch and seed/refresh the bundle
-cd wizard && git checkout feat/harness-bundle && cargo build --release
-export WIZARD_BINARY=/abs/path/to/wizard/target/release/wizard
+# 0. Build wizard from the harness-bundle branch — STATIC MUSL, so the binary
+#    runs inside any task container (Debian- or Nix-based; a host-linked build
+#    fails with "required file not found"). On NixOS:
+cd wizard && git checkout feat/harness-bundle
+nix-shell -p rustup musl --run '
+  CC_x86_64_unknown_linux_musl=musl-gcc \
+  CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=rust-lld \
+  RUSTFLAGS="-C target-feature=+crt-static -C link-self-contained=yes" \
+  cargo build --release --target x86_64-unknown-linux-musl'
+# (link with rust-lld, NOT nix musl-gcc — the latter emits a segfaulting
+#  binary with -static and silently dynamic output without it)
+export WIZARD_BINARY=/abs/path/to/wizard/target/x86_64-unknown-linux-musl/release/wizard
+cargo build --release   # host build, used only for the export below
 ./target/release/wizard harness export /abs/path/to/wizard-ahe/agents/wizard_harness
 
 # 1. Point AHE at any OpenAI-compatible endpoint
@@ -88,10 +98,21 @@ uv run python evolve.py --config configs/experiments/exp-wizard-smoke.yaml
 
 Container → host networking (Linux): when the endpoint runs on the host, the
 adapter defaults to `http://host.docker.internal:8080/v1`; harbor must launch
-task containers with `--add-host=host.docker.internal:host-gateway` (or
-`--network host` + `WIZARD_LLM_BASE_URL=http://localhost:8080/v1`). A remote
-API endpoint needs no special networking, just `allow_internet = true` in the
-task (already set).
+task containers with `--add-host=host.docker.internal:host-gateway` (or use
+the docker bridge IP, e.g. `WIZARD_LLM_BASE_URL=http://172.17.0.1:8088/v1`).
+A remote API endpoint needs no special networking. Either way every task needs
+`allow_internet = true` — with it false the container gets NO network and
+wizard's LLM health check dies with "Network unreachable".
+
+**NixOS host firewall**: container→host traffic hits the `nixos-fw` input
+chain, so the endpoint port must be opened on the bridge or rollouts time out:
+
+```nix
+networking.firewall.interfaces."docker0".allowedTCPPorts = [ 8088 ];
+```
+
+(one-off equivalent: `sudo iptables -I nixos-fw 1 -i docker0 -p tcp --dport
+8088 -j ACCEPT` — not persistent across reboots/rebuilds).
 
 ## Merge-back: making the loop recursive
 
@@ -114,14 +135,20 @@ One cycle, always human-gated:
 
 ## Open items (validated by the next gate run)
 
-1. **`code_agent_patch` vs markdown prompt.** Neutralized to `{}` in the wizard
-   configs; `evolve.py:apply_code_agent_patch` already skips non-YAML configs.
-   Re-confirm on the first full-bundle run.
+1. ~~**`code_agent_patch` vs markdown prompt.**~~ Resolved: neutralized to `{}`
+   in the wizard configs and `evolve.py:apply_code_agent_patch` skips non-YAML
+   configs; a full-bundle smoke run completed the whole loop (workspace git,
+   scoring, evolve pass, iteration_scores) without corrupting the bundle.
+
+   Also NixOS-specific: create the venv with a **uv-managed Python**
+   (`uv venv --python-preference only-managed`) — with a nix-store Python,
+   harbor's `tokenizers` wheel fails on `libstdc++.so.6` (nix-ld only wraps
+   uv-managed interpreters).
 2. **Container networking flag.** Confirm harbor's docker env applies
    `--add-host=...:host-gateway` when using a host-local endpoint.
-3. **Binary upload path.** The adapter uploads `$WIZARD_BINARY` via
-   `environment.upload_file`; confirm glibc compatibility with task base images
-   (build static/musl if a task image is Alpine).
+3. ~~**Binary upload path.**~~ Resolved: `$WIZARD_BINARY` must be the static
+   musl build (see step 0) — a host-linked binary's ELF interpreter doesn't
+   exist inside the containers (bit immediately on NixOS).
 4. **Transcript → evolve evidence.** With the debugger off, confirm the evolve
    agent receives wizard's transcript (`/logs/agent/wizard.txt` →
    `trajectory.json`) as failure evidence; wire it into the evolution query if not.
