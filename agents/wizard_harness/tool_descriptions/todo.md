@@ -1,0 +1,1 @@
+Maintain your working todo list for the current task. Action "write" replaces the entire list (pass every item, including completed ones, each as {content, status}); action "read" returns the current list. Statuses: pending, in_progress, completed — keep exactly one item in_progress at a time and mark items completed as soon as they are done.

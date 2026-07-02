@@ -1,0 +1,1 @@
+Persist facts about this project across sessions. Use action 'save' to record a durable fact (user preferences, project conventions, decisions), 'read' to recall a saved memory's full content, and 'delete' to drop a stale one. Saved memories appear in the system prompt's memory index next session. Names are kebab-case; descriptions are one line.

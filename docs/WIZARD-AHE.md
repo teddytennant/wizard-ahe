@@ -2,133 +2,158 @@
 
 AHE used as an external lab tool to improve [`wizard`](https://github.com/teddytennant/wizard):
 it runs wizard over a task set in Docker, analyzes failures, has a meta-model
-rewrite wizard's base system prompt, and re-measures — producing a before/after
-pass-rate. Wizard's native runtime loop is untouched.
+rewrite wizard's **harness bundle** — system prompt, tool descriptions, skills,
+subagents — and re-measures, producing a before/after pass-rate. Wizard's native
+Rust runtime is untouched; only the externalized bundle evolves.
 
-Model: `DavidAU/Qwen3.6-27B-Heretic-Uncensored-FINETUNE-NEO-CODE-Di-IMatrix-MAX-GGUF`,
-served by `llama-server` on the **GPU host (A100 80GB)**, used as both the
-agent-under-test and the evolve-agent. Marginal cost ≈ $0 (own the GPU).
+The loop is provider-generic: any **OpenAI-compatible endpoint** works, configured
+entirely from `.env` (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`). Local
+llama-server, a cloud API, or the xAI OAuth proxy (appendix) are all just
+different values for those three variables.
 
-## What's wired (this branch)
+## The harness bundle
 
-- **wizard** (`feat/externalize-system-prompt`): loads its base prompt from
-  `~/.wizard/system_prompt.md` / `$WIZARD_SYSTEM_PROMPT` when present — the surface
-  this loop mutates. ✅ tested + pushed.
+The evolve target `agents/wizard_harness/` is a full bundle produced by
+`wizard harness export` (wizard branch `feat/harness-bundle`):
+
+```
+agents/wizard_harness/
+  system_prompt.md            # base personality prompt (sovereign mode)
+  tool_descriptions/<tool>.md # description advertised to the model per native tool
+  skills/<name>/SKILL.md      # prompt-injected skills
+  subagents/<name>.toml       # spawnable subagent definitions
+  HARNESS.md                  # generated guide (rides into the workspace,
+                              # orients the evolve agent)
+```
+
+AHE copies the whole directory into `experiments/<run>/workspace/` (git-tracked,
+one commit per evolve edit); the adapter tars the current candidate into each
+task container at `/root/.wizard/harness` and runs wizard with
+`WIZARD_HARNESS_DIR` pointing at it. Missing/empty files fall back to wizard's
+compiled defaults, so destructive edits degrade gracefully instead of bricking
+the run.
+
+## What's wired
+
+- **wizard** (`feat/harness-bundle`): loads a full harness bundle from
+  `--harness-dir` / `$WIZARD_HARNESS_DIR`; `wizard harness export <dir>` dumps
+  the compiled defaults as a bundle. Sentinel-verified end-to-end (bundle
+  contents reach the LLM request).
 - **harbor adapter** `agents/wizard_agent/adapter.py` (+ `install-wizard.sh.j2`):
-  uploads the wizard binary + the current candidate prompt into each task
-  container, writes a `~/.wizard/config.toml` pointing at the host llama-server,
-  runs `wizard -p`. Selected by import path.
-- **evolve.py**: now emits `--agent-import-path` when `harbor.agent_import_path`
-  is set, so the custom adapter is usable without touching harbor's `AgentName`
-  enum.
-- **config** `configs/experiments/exp-wizard.yaml`: 15-task set, k=2, 5 iters,
-  debugger off (transcript-fed), evolve target = `agents/wizard_harness/system_prompt.md`.
-- **scripts** `scripts/serve-qwen.sh` (serve the model), `scripts/evolve-wizard.sh`
-  (run the loop).
-- **dataset** `dataset/wizard/` — one worked example (`even-sum`) + `README.md`;
-  author the rest from real wizard failure modes.
+  uploads the wizard binary + the current candidate bundle (tarball, `.git`
+  excluded) into each task container, writes `~/.wizard/config.toml` pointing at
+  `WIZARD_LLM_BASE_URL`, runs `wizard -p` with `WIZARD_HARNESS_DIR` set.
+  Selected by import path.
+- **evolve.py**: emits `--agent-import-path` when `harbor.agent_import_path` is
+  set, so the custom adapter is usable without touching harbor's `AgentName` enum.
+- **configs** `configs/experiments/exp-wizard.yaml` (k=2, 5 iters, debugger off,
+  transcript-fed) and `exp-wizard-smoke.yaml` (hello-file, k=1, 1 iter) — both
+  read `${LLM_BASE_URL}/${LLM_API_KEY}/${LLM_MODEL}` from `.env`.
+- **dataset** `dataset/wizard/` — 10 verifiable agentic coding tasks (see its
+  README) + `dataset/local-sample/hello-file` as the smoke gate.
+- **scripts** `scripts/evolve-wizard.sh` (run the loop); optional backends in
+  the appendix.
 
-## Run it (on the GPU host)
+## Run it
 
 ```bash
-# 0. Build wizard (in the wizard repo) and note the binary path
-cargo build --release            # -> target/release/wizard
+# 0. Build wizard from the harness-bundle branch and seed/refresh the bundle
+cd wizard && git checkout feat/harness-bundle && cargo build --release
 export WIZARD_BINARY=/abs/path/to/wizard/target/release/wizard
+./target/release/wizard harness export /abs/path/to/wizard-ahe/agents/wizard_harness
 
-# 1. Serve the model (separate shell; stays running)
-cd agentic-harness-engineering
-./scripts/serve-qwen.sh
-curl http://localhost:8080/v1/models     # confirm "qwen3.6-27b"
-
-# 2. Point AHE at it
-cp .env.example .env   # then edit:
-#   LLM_BASE_URL=http://localhost:8080/v1
-#   LLM_API_KEY=sk-noauth-local
+# 1. Point AHE at any OpenAI-compatible endpoint
+cd wizard-ahe
+cp .env.example .env   # then set:
+#   LLM_BASE_URL=...       e.g. http://localhost:8080/v1, https://api.x.ai/v1, ...
+#   LLM_API_KEY=...        any non-empty string for keyless local servers
+#   LLM_MODEL=...          model name at that endpoint
 uv sync
 
-# 3. Smoke gate first — prove the wiring on the trivial task before the real run
-uv run python evolve.py --config configs/experiments/exp-wizard-smoke.yaml --skip-eval=false
-#   (a smoke overlay = exp-wizard.yaml with path=./dataset/local-sample,
-#    max_iterations=1, k=1; create it by copying exp-wizard.yaml.)
+# 2. In-container endpoint for the agent-under-test (task containers can't
+#    always see "localhost" of the host):
+export WIZARD_LLM_BASE_URL=http://host.docker.internal:8080/v1   # or your API URL
+
+# 3. Smoke gate — prove the wiring on the trivial task before the real run
+uv run python evolve.py --config configs/experiments/exp-wizard-smoke.yaml
 
 # 4. Full run
-WIZARD_BINARY=$WIZARD_BINARY ./scripts/evolve-wizard.sh
-# baseline vs final: experiments/<run>/iteration_scores.yaml
-# evolved prompt + history: experiments/<run>/workspace/system_prompt.md
+./scripts/evolve-wizard.sh
+# baseline vs final:        experiments/<run>/iteration_scores.yaml
+# evolved bundle + history: experiments/<run>/workspace/  (git log -p)
 ```
 
-Container → host networking (Linux): the adapter defaults the in-container
-endpoint to `http://host.docker.internal:8080/v1`. harbor must launch task
-containers with `--add-host=host.docker.internal:host-gateway` (or `--network
-host`, then set `WIZARD_LLM_BASE_URL=http://localhost:8080/v1`). llama-server
-binds `0.0.0.0` already.
+Container → host networking (Linux): when the endpoint runs on the host, the
+adapter defaults to `http://host.docker.internal:8080/v1`; harbor must launch
+task containers with `--add-host=host.docker.internal:host-gateway` (or
+`--network host` + `WIZARD_LLM_BASE_URL=http://localhost:8080/v1`). A remote
+API endpoint needs no special networking, just `allow_internet = true` in the
+task (already set).
 
-## Option B: Grok via your xAI OAuth subscription (no API key)
+## Merge-back: making the loop recursive
 
-wizard's `wizard --login xai` stores a Bearer token (`~/.wizard/xai_oauth.json`)
-used against the OpenAI-compatible API at `https://api.x.ai/v1` (model `grok-4.3`).
-`scripts/xai-oauth-proxy.py` reuses that session as a local OpenAI-compatible
-endpoint — auto-refreshing the token — so **both** the evolve-agent and the
-in-container wizard use Grok with no API key, on one port. The adapter needs no
-change. This works on any box (no GPU needed; Grok is remote), so you can skip
-`serve-qwen.sh` entirely.
+One cycle, always human-gated:
 
-```bash
-# 0. one-time: sign in (interactive browser flow)
-wizard --login xai
+1. Run the loop; the best bundle sits in `experiments/<run>/workspace/`
+   (per-generation snapshots under `runs/iteration_NNN/`; regressed predictions
+   are rolled back automatically).
+2. Review every evolve edit: `git -C experiments/<run>/workspace log -p`, and
+   diff the final bundle against `agents/wizard_harness/`.
+3. Bake accepted changes into wizard on a branch:
+   - `system_prompt.md` → the prompt constants in `src/agent/prompts.rs`
+   - `tool_descriptions/*.md` → the description strings in `src/tools/*.rs`
+   - `skills/**` → wizard's `skills/`
+   - `subagents/*.toml` → wizard's `loadout/subagents/`
+   Gate on `cargo test` + a `wizard bench` before/after replay + PR review.
+4. Rebuild wizard, re-run `wizard harness export agents/wizard_harness/` here,
+   commit. The next AHE round starts from the improved baseline — that's the
+   recursion. One cycle = one wizard PR + one seed commit here.
 
-# 1. start the proxy (0.0.0.0 so containers can reach it; stays running)
-cd agentic-harness-engineering
-python3 scripts/xai-oauth-proxy.py          # -> http://0.0.0.0:8080/v1
-curl -s http://localhost:8080/v1/models      # confirm Grok responds
+## Open items (validated by the next gate run)
 
-# 2. point AHE + the adapter at the proxy
-#   .env:   LLM_BASE_URL=http://localhost:8080/v1   LLM_API_KEY=unused
-export WIZARD_LLM_BASE_URL=http://host.docker.internal:8080/v1   # for task containers
-export WIZARD_BINARY=/abs/path/to/wizard/target/release/wizard
-
-# 3. run (grok-4.3, n_concurrent=3 to respect subscription rate limits)
-uv run python evolve.py --config configs/experiments/exp-wizard-xai.yaml
-```
-
-Caveats: OAuth API access is gated to certain SuperGrok plans (403 if yours lacks
-it — fall back to `XAI_API_KEY` + `kind="xai"`); it's your personal subscription,
-so keep `n_concurrent` low and be mindful that automated loop use differs from
-interactive use; binding the proxy on `0.0.0.0` exposes a token-injecting endpoint
-on your LAN (use `HOST=127.0.0.1` if only the host-side evolve-agent needs it, but
-then containers can't reach it — use `--network host` for those instead).
-
-For a smoke gate on this path, run the same command with
-`path: ./dataset/local-sample`, `max_iterations: 1`, `k: 1` (copy
-`exp-wizard-xai.yaml` and override those three).
-
-## Open items (need a live gate run to finalize)
-
-These could not be validated off-GPU and are the most likely things to need a
-tweak during the first `hello-file`/`even-sum` gate:
-
-1. **`code_agent_patch` vs markdown prompt.** AHE deep-merges `code_agent_patch`
-   into `agent_config_filename` as YAML; our agent config is markdown
-   (`system_prompt.md`). It's neutralized to `{}` in exp-wizard.yaml, but
-   `evolve.py:apply_code_agent_patch` may still need a guard to skip the merge
-   when the file isn't YAML. Verify on the first run.
-2. **Container networking flag.** Confirm harbor's docker env actually applies
-   `--add-host=...:host-gateway` (or switch to `--network host`). If the
-   in-container `curl http://host.docker.internal:8080/v1/models` fails, this is why.
+1. **`code_agent_patch` vs markdown prompt.** Neutralized to `{}` in the wizard
+   configs; `evolve.py:apply_code_agent_patch` already skips non-YAML configs.
+   Re-confirm on the first full-bundle run.
+2. **Container networking flag.** Confirm harbor's docker env applies
+   `--add-host=...:host-gateway` when using a host-local endpoint.
 3. **Binary upload path.** The adapter uploads `$WIZARD_BINARY` via
-   `environment.upload_file`; confirm the binary is glibc-compatible with the task
-   base images (build static/musl if a task image is Alpine).
+   `environment.upload_file`; confirm glibc compatibility with task base images
+   (build static/musl if a task image is Alpine).
 4. **Transcript → evolve evidence.** With the debugger off, confirm the evolve
    agent receives wizard's transcript (`/logs/agent/wizard.txt` →
    `trajectory.json`) as failure evidence; wire it into the evolution query if not.
-5. **wizard `-p` + openai provider against a no-auth llama-server.** Confirm the
-   `openai` provider tolerates the dummy key and that `-p` runs sovereign/headless
-   as expected.
 
 ## Cost / scale
 
-Larger run = ~15 tasks × k=2 × 5 iters = 150 rollouts + ~5 evolve passes.
-Marginal cost ≈ $0 (own the A100; electricity only). Wall-clock a few hours to
-~1 day at `n_concurrent: 6`. Optional: point only `evolve_agent.llm_config` at an
-API model (e.g. GPT-5.5 via OpenRouter, ~$20–40 total) for stronger harness edits
-while the high-volume base stays free on the GPU.
+10 tasks × k=2 × 5 iters = 100 rollouts + ~5 evolve passes. Cost depends
+entirely on the endpoint: ≈ $0 on a self-hosted GPU; on an API, the evolve
+passes dominate (long transcript-fed prompts). Optional: point only
+`evolve_agent.llm_config` at a stronger API model while the high-volume
+agent-under-test stays on a cheap/local endpoint.
+
+---
+
+## Appendix: optional endpoint backends
+
+### Local llama-server (self-hosted GPU)
+
+`./scripts/serve-qwen.sh` serves a Qwen GGUF on `http://0.0.0.0:8080/v1`
+(model name `qwen3.6-27b`). Set `LLM_BASE_URL=http://localhost:8080/v1`,
+`LLM_API_KEY=sk-noauth-local`, `LLM_MODEL=qwen3.6-27b`. Marginal cost ≈ $0.
+
+### Grok via xAI OAuth subscription (no API key)
+
+wizard's `wizard --login xai` stores a Bearer token (`~/.wizard/xai_oauth.json`)
+for the OpenAI-compatible API at `https://api.x.ai/v1`.
+`scripts/xai-oauth-proxy.py` re-serves that session as a local
+OpenAI-compatible endpoint with auto-refresh; `scripts/run-wizard-xai-loop.sh`
+is a turnkey wrapper. Set `LLM_BASE_URL=http://localhost:8088/v1`,
+`LLM_API_KEY=oauth-via-proxy`, `LLM_MODEL=grok-4.3`, and
+`WIZARD_LLM_BASE_URL=http://172.17.0.1:8088/v1` (docker bridge IP) for the
+containers.
+
+Caveats: OAuth API access is gated to certain SuperGrok plans (403 if yours
+lacks it — fall back to `XAI_API_KEY`); it's a personal subscription, so keep
+`n_concurrent` low; binding the proxy on `0.0.0.0` exposes a token-injecting
+endpoint on your LAN (prefer the docker bridge address or `HOST=127.0.0.1` +
+`--network host`).

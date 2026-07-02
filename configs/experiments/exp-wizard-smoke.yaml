@@ -12,7 +12,7 @@ target_pass_rate: 0.5
 llm:
   api_key: "${LLM_API_KEY}"
   base_url: "${LLM_BASE_URL}"
-  model: "qwen3.6-27b"
+  model: "${LLM_MODEL}"
 
 harbor:
   agent: "wizard"

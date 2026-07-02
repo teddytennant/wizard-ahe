@@ -1,7 +1,7 @@
 _base: "../base.yaml"
 _name: "wizard"
-_description: "Evolve wizard's externalized system prompt against a local task set, served by llama-server on the GPU host. Transcript-fed (no NexAU-format Agent Debugger)."
-_tags: ["wizard", "docker", "local-gpu"]
+_description: "Evolve wizard's full harness bundle (system prompt, tool descriptions, skills, subagents) against a local task set, via any OpenAI-compatible endpoint. Transcript-fed (no NexAU-format Agent Debugger)."
+_tags: ["wizard", "docker", "openai-compatible"]
 
 # Local task set authored from wizard's real failure modes (harbor task format).
 path: "./dataset/wizard"
@@ -9,15 +9,16 @@ path: "./dataset/wizard"
 max_iterations: 5
 target_pass_rate: 0.9
 
-# Local llama-server (OpenAI-compatible) on the GPU host. Set these in .env:
-#   LLM_BASE_URL=http://localhost:8080/v1   (evolve-agent, runs on the host)
-#   LLM_API_KEY=sk-noauth-local             (any non-empty string)
-# The in-container wizard reaches the same server via host.docker.internal:8080
-# (set WIZARD_LLM_BASE_URL for the adapter; see docs/WIZARD-AHE.md).
+# Any OpenAI-compatible endpoint, configured entirely from .env:
+#   LLM_BASE_URL=...   (evolve-agent, runs on the host)
+#   LLM_API_KEY=...    (any non-empty string for keyless local servers)
+#   LLM_MODEL=...
+# The in-container wizard needs its own reachable base_url — set
+# WIZARD_LLM_BASE_URL for the adapter (see docs/WIZARD-AHE.md).
 llm:
   api_key: "${LLM_API_KEY}"
   base_url: "${LLM_BASE_URL}"
-  model: "qwen3.6-27b"
+  model: "${LLM_MODEL}"
 
 harbor:
   # Custom adapter selected by import path (not in harbor's AgentName enum).
@@ -29,10 +30,12 @@ harbor:
   n_concurrent: 6
   force_build: false
 
-# The harness AHE evolves: a directory whose system_prompt.md is wizard's base
-# prompt. AHE copies it into experiments/<run>/workspace/ and the evolve agent
-# rewrites it each iteration; the adapter ships the current candidate into each
-# task container as ~/.wizard/system_prompt.md.
+# The harness AHE evolves: wizard's full harness bundle (produced by
+# `wizard harness export agents/wizard_harness/`): system_prompt.md,
+# tool_descriptions/, skills/, subagents/, HARNESS.md. AHE copies the whole
+# directory into experiments/<run>/workspace/ and the evolve agent edits any
+# of it each iteration; the adapter ships the current candidate bundle into
+# each task container as /root/.wizard/harness ($WIZARD_HARNESS_DIR).
 source_config_dir: "agents/wizard_harness"
 agent_config_filename: "system_prompt.md"
 

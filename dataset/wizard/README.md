@@ -18,6 +18,21 @@ signal for the evolve agent to work with.
 
 `even-sum/` is a complete worked example — copy it as a starting point.
 
+## Tasks
+
+| Task | What it measures |
+|------|------------------|
+| `even-sum` | Worked example: implement a small function (`even_sum`) from a spec. |
+| `csv-report` | Read provided data (`data/sales.csv`) and write exact computed output (`report.json` with per-category totals). |
+| `fix-failing-test` | Run pytest, localize a bug in the module under test, fix it without touching the test file (checksum-enforced). |
+| `cli-wordfreq` | Build a CLI (`wordfreq.py`) with flags, exact output format, and correct exit codes across many invocations. |
+| `json-merge` | Implement `deep_merge(a, b)` with precise dict/list/scalar semantics, no input mutation, no shared structure. |
+| `refactor-rename` | Multi-file rename across a package (`textkit/`) with identical behavior and zero leftover references. |
+| `makefile-build` | Author a Makefile (`build`/`test`/`clean`) that bundles `src/*.txt` sorted, detects stale/corrupt output, and stays glob-based. |
+| `log-parser` | Parse a messy log (unordered timestamps, garbage lines) into an exact JSON summary via a rerunnable script. |
+| `state-machine` | Implement a `Turnstile` class: transitions, event log, invalid-event `ValueError`s, per-instance state isolation. |
+| `git-history` | Drive `git` to build an exact 3-commit history (messages, author/committer, per-commit trees, clean worktree). |
+
 ## Required for wizard tasks
 
 - **`allow_internet = true`** in `task.toml`. The in-container wizard must reach

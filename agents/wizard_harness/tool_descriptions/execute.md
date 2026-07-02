@@ -1,0 +1,1 @@
+Run a shell command in the project root and return its stdout, stderr, and exit code. Killed on timeout. With run_in_background, the command is detached as a background task: the call returns a task id immediately, you are notified when it finishes, and task_output / task_kill manage it meanwhile.

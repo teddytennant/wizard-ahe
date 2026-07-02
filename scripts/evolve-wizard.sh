@@ -3,9 +3,10 @@
 # the wizard-specific prerequisites, then runs exp-wizard.yaml in a tmux session.
 #
 # Prereqs (see docs/WIZARD-AHE.md):
-#   - llama-server up on the GPU host  (scripts/serve-qwen.sh)
-#   - .env has LLM_BASE_URL / LLM_API_KEY pointing at it
+#   - an OpenAI-compatible endpoint; .env has LLM_BASE_URL / LLM_API_KEY /
+#     LLM_MODEL pointing at it (llama-server, cloud API, or the xAI proxy)
 #   - WIZARD_BINARY -> host path of the release `wizard` binary
+#     (built from a branch with harness-bundle support)
 #   - Docker daemon running
 set -euo pipefail
 
