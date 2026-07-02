@@ -1,8 +1,6 @@
-FROM python:3.12-slim
+FROM wizard-ahe/task-base:latest
 
 WORKDIR /app
-
-RUN pip install --no-cache-dir pytest==8.3.4
 
 COPY <<'EOF' /app/stats_util.py
 """Tiny statistics helpers."""

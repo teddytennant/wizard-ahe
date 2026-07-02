@@ -517,6 +517,15 @@ def launch_harbor(config: dict, workspace_dir: Path, agent_config_filename: str,
     llm_cfg = get_llm_config(config, role="agent")
 
     sub_env = os.environ.copy()
+    # Harbor imports the agent adapter by dotted path (e.g.
+    # agents.wizard_agent.adapter). Installed console scripts don't put the
+    # repo on sys.path and cwd is ROOT_DIR (one level up), so pass the repo
+    # dir via PYTHONPATH instead of relying on packaging side effects.
+    repo_dir = str(Path(__file__).resolve().parent)
+    existing_pythonpath = sub_env.get("PYTHONPATH", "")
+    sub_env["PYTHONPATH"] = (
+        f"{repo_dir}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else repo_dir
+    )
     for cfg_key, env_key in [("api_key", "LLM_API_KEY"),
                              ("base_url", "LLM_BASE_URL"),
                              ("model", "LLM_MODEL")]:

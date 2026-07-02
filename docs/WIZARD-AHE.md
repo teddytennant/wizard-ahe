@@ -74,10 +74,13 @@ uv sync
 #    always see "localhost" of the host):
 export WIZARD_LLM_BASE_URL=http://host.docker.internal:8080/v1   # or your API URL
 
-# 3. Smoke gate — prove the wiring on the trivial task before the real run
+# 3. Build the Nix-packaged task base image (dataset Dockerfiles start FROM it)
+./scripts/build-task-image.sh
+
+# 4. Smoke gate — prove the wiring on the trivial task before the real run
 uv run python evolve.py --config configs/experiments/exp-wizard-smoke.yaml
 
-# 4. Full run
+# 5. Full run
 ./scripts/evolve-wizard.sh
 # baseline vs final:        experiments/<run>/iteration_scores.yaml
 # evolved bundle + history: experiments/<run>/workspace/  (git log -p)
@@ -146,8 +149,9 @@ agent-under-test stays on a cheap/local endpoint.
 wizard's `wizard --login xai` stores a Bearer token (`~/.wizard/xai_oauth.json`)
 for the OpenAI-compatible API at `https://api.x.ai/v1`.
 `scripts/xai-oauth-proxy.py` re-serves that session as a local
-OpenAI-compatible endpoint with auto-refresh; `scripts/run-wizard-xai-loop.sh`
-is a turnkey wrapper. Set `LLM_BASE_URL=http://localhost:8088/v1`,
+OpenAI-compatible endpoint with auto-refresh (`PORT=8088 python3
+scripts/xai-oauth-proxy.py`). Then it's just .env values for the normal
+configs: `LLM_BASE_URL=http://localhost:8088/v1`,
 `LLM_API_KEY=oauth-via-proxy`, `LLM_MODEL=grok-4.3`, and
 `WIZARD_LLM_BASE_URL=http://172.17.0.1:8088/v1` (docker bridge IP) for the
 containers.

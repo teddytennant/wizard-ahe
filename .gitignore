@@ -16,3 +16,4 @@ target-glibc/
 uv.lock
 .venv/
 .wizard-xai-runs/
+result*

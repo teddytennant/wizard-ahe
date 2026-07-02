@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM wizard-ahe/task-base:latest
 
 WORKDIR /app
 
