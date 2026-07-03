@@ -5,6 +5,7 @@
 //! `ahe status` shows the latest experiment.
 
 mod cfg;
+mod endpoint;
 mod run;
 mod setup;
 

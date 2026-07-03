@@ -57,8 +57,9 @@ the run.
 ## Run it
 
 The easy path is the CLI — `./install.sh` (or the one-liner in the README)
-builds `ahe`, adds it to PATH, and walks you through endpoint/model/key,
-the wizard build, and the task image:
+builds `ahe`, adds it to PATH, and walks you through picking an LLM backend
+(OpenAI-compatible API, ChatGPT OAuth, or xAI OAuth), the wizard build, and
+the task image:
 
 ```bash
 ahe setup
@@ -183,6 +184,18 @@ agent-under-test stays on a cheap/local endpoint.
 `./scripts/serve-qwen.sh` serves a Qwen GGUF on `http://0.0.0.0:8080/v1`
 (model name `qwen3.6-27b`). Set `LLM_BASE_URL=http://localhost:8080/v1`,
 `LLM_API_KEY=sk-noauth-local`, `LLM_MODEL=qwen3.6-27b`. Marginal cost ≈ $0.
+
+### ChatGPT via OAuth subscription (no API key)
+
+`codex login` stores ChatGPT subscription tokens in `~/.codex/auth.json`.
+`scripts/chatgpt-oauth-proxy.py` re-serves that session as a local
+OpenAI-compatible endpoint with auto-refresh (`PORT=8089 python3
+scripts/chatgpt-oauth-proxy.py`). `ahe setup` can run the login, start the
+proxy, and write `.env` for you. Manual values:
+
+`LLM_BASE_URL=http://localhost:8089/v1`, `LLM_API_KEY=oauth-via-proxy`,
+`LLM_MODEL=gpt-5.2`, and `WIZARD_LLM_BASE_URL=http://172.17.0.1:8089/v1` for
+the containers.
 
 ### Grok via xAI OAuth subscription (no API key)
 

@@ -43,7 +43,8 @@ bash <(gh api -H "Accept: application/vnd.github.raw" /repos/teddytennant/wizard
 (The repo is private, so the one-liner rides an authenticated `gh`; from an
 existing checkout just run `./install.sh`.) The installer builds the **`ahe`**
 CLI, puts it on your PATH (`~/.local/bin`), and hands off to `ahe setup`,
-which asks for the **API base URL, model name, and API key**, probes the
+which asks you to pick an **LLM backend** (OpenAI-compatible API, ChatGPT
+OAuth via `codex login`, or xAI OAuth via `wizard --login xai`), probes the
 endpoint, installs/builds wizard (static musl), builds the Nix task image,
 and syncs the python env — then prints a doctor table.
 
@@ -64,7 +65,7 @@ a running pass count, and a phase spinner (evaluating / analyzing / evolving)
 — then a scores table and the evolved-bundle path.
 
 Details, the merge-back procedure, and optional endpoint backends (local
-llama-server, xAI OAuth proxy): [docs/WIZARD-AHE.md](docs/WIZARD-AHE.md).
+llama-server, ChatGPT OAuth proxy, xAI OAuth proxy): [docs/WIZARD-AHE.md](docs/WIZARD-AHE.md).
 
 ## Layout
 
