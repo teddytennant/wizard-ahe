@@ -7,7 +7,10 @@ _tags: ["wizard", "docker", "openai-compatible"]
 path: "./dataset/wizard"
 
 max_iterations: 5
-target_pass_rate: 0.9
+# >1.0 disables the early-stop-on-target check: the current task set passes at
+# baseline (100% on 2026-07-09), so a reachable target ends the run at iteration
+# 1 before the evolve agent ever edits the harness. Always run all iterations.
+target_pass_rate: 1.01
 
 # Any OpenAI-compatible endpoint, configured entirely from .env:
 #   LLM_BASE_URL=...   (evolve-agent, runs on the host)

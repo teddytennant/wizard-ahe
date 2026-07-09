@@ -7,7 +7,6 @@ auto-exp/
 *.egg-info/
 .env
 /experiments/
-experiments/
 jobs/
 *.pyc
 __pycache__/
