@@ -19,3 +19,6 @@ result*
 cli/target
 .ahe-run.yaml
 *.log
+
+# Registry datasets are reproducible downloads (see exp-wizard-tbench.yaml), not vendored.
+/dataset/tbench-sample/

@@ -1,0 +1,50 @@
+_base: "../base.yaml"
+_name: "wizard-tbench"
+_description: "Evolve wizard's harness bundle against the Terminal-Bench 2.0 sample split (10 registry tasks). Training signal replaces the saturated local set; run until pass@1 hits 100%."
+_tags: ["wizard", "docker", "terminal-bench", "openai-compatible"]
+
+# Terminal-Bench 2.0 sample from the harbor registry. Not vendored in git;
+# regenerate with:
+#   .venv/bin/python .venv/bin/harbor datasets download terminal-bench-sample@2.0 \
+#     -o dataset/tbench-sample
+# then flatten each <id>/<name>/ to <name>/. Tasks use prebuilt ghcr.io images
+# (pull them ahead of a run to stay inside build_timeout_sec).
+path: "./dataset/tbench-sample"
+
+max_iterations: 6
+# Stop exactly at 100% pass@1 — this split is genuinely hard for grok-4.5, so
+# unlike the local wizard set the target is meaningful, not a baseline no-op.
+target_pass_rate: 1.0
+
+llm:
+  api_key: "${LLM_API_KEY}"
+  base_url: "${LLM_BASE_URL}"
+  model: "${LLM_MODEL}"
+
+harbor:
+  agent: "wizard"
+  agent_import_path: "agents.wizard_agent.adapter:WizardAgent"
+  env: "docker"
+  k: 2
+  # Lower than exp-wizard: t-bench images are heavier (qemu, gcov builds) and
+  # every wizard step round-trips the personal-subscription OAuth proxy.
+  n_concurrent: 4
+  force_build: false
+
+source_config_dir: "agents/wizard_harness"
+agent_config_filename: "system_prompt.md"
+code_agent_patch: {}
+
+evolve_agent:
+  tool_call_mode: openai
+  llm_config:
+    api_type: openai_chat_completion
+
+agent_debugger:
+  enabled: false
+
+explore_agent:
+  enabled: false
+
+notify:
+  enabled: false
