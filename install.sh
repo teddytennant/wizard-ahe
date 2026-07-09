@@ -2,9 +2,8 @@
 # wizard-ahe installer: builds the `ahe` CLI, puts it on PATH, and hands off
 # to `ahe setup` (interactive: endpoint URL, model, API key, wizard install).
 #
-# One-liner (repo is private, so it goes through an authenticated gh):
-#   bash <(gh api -H "Accept: application/vnd.github.raw" \
-#         /repos/teddytennant/wizard-ahe/contents/install.sh)
+# One-liner:
+#   bash <(curl -fsSL https://raw.githubusercontent.com/teddytennant/wizard-ahe/main/install.sh)
 #
 # From an existing checkout:  ./install.sh
 # Flags: --no-setup   install the CLI only, skip the interactive setup
@@ -31,14 +30,13 @@ if [ -f evolve.py ] && [ -d agents/wizard_harness ]; then
   LAB_DIR="$(pwd -P)"
   say "using existing checkout: $LAB_DIR"
 else
-  need gh "repo is private; authenticate with 'gh auth login'"
   if [ -d "$CLONE_DIR/.git" ]; then
     say "updating $CLONE_DIR"
     git -C "$CLONE_DIR" pull --ff-only
   else
     say "cloning $REPO_SLUG -> $CLONE_DIR"
     mkdir -p "$(dirname "$CLONE_DIR")"
-    gh repo clone "$REPO_SLUG" "$CLONE_DIR"
+    git clone "https://github.com/$REPO_SLUG.git" "$CLONE_DIR"
   fi
   LAB_DIR="$CLONE_DIR"
 fi

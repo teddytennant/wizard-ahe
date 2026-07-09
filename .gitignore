@@ -19,3 +19,4 @@ uv.lock
 result*
 cli/target
 .ahe-run.yaml
+*.log

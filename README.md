@@ -1,6 +1,6 @@
 # wizard-ahe
 
-Private AHE lab that recursively improves [wizard](https://github.com/teddytennant/wizard)'s
+An AHE lab that recursively improves [wizard](https://github.com/teddytennant/wizard)'s
 harness. Each round runs wizard over a Docker task set, analyzes its transcripts,
 has a meta-agent rewrite wizard's externalized *harness bundle* — system prompt,
 tool descriptions, skills, subagents — and re-measures. Regressions roll back
@@ -37,11 +37,10 @@ This repository is a derivative of **Agentic Harness Engineering** by **Curry09 
 ## Install (one line)
 
 ```bash
-bash <(gh api -H "Accept: application/vnd.github.raw" /repos/teddytennant/wizard-ahe/contents/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/teddytennant/wizard-ahe/main/install.sh)
 ```
 
-(The repo is private, so the one-liner rides an authenticated `gh`; from an
-existing checkout just run `./install.sh`.) The installer builds the **`ahe`**
+(From an existing checkout just run `./install.sh`.) The installer builds the **`ahe`**
 CLI, puts it on your PATH (`~/.local/bin`), and hands off to `ahe setup`,
 which asks you to pick an **LLM backend** (OpenAI-compatible API, ChatGPT
 OAuth via `codex login`, or xAI OAuth via `wizard --login xai`), probes the

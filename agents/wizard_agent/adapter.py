@@ -16,7 +16,7 @@ closed `AgentName` enum is needed:
 
 Wiring contract (host env, read at run time):
   WIZARD_BINARY        host path to the release `wizard` binary to upload
-                       (e.g. /home/gradient/projects/ai/wizard/target/release/wizard).
+                       (e.g. <wizard checkout>/target/x86_64-unknown-linux-musl/release/wizard).
                        Must be built from a branch with harness-bundle support
                        (`wizard harness export` exists).
   WIZARD_LLM_BASE_URL  OpenAI-compatible base_url the in-container wizard talks to;
