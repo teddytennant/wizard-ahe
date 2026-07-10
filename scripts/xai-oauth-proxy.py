@@ -5,9 +5,9 @@ wizard's `wizard --login xai` flow stores a Bearer token in
 ~/.wizard/xai_oauth.json and uses it against the OpenAI-compatible Chat
 Completions API at https://api.x.ai/v1. This proxy reuses that stored session so
 any OpenAI-compatible client — AHE's evolve-agent AND the in-container wizard —
-can talk to Grok via your subscription with no API key:
+can talk to Grok 4.5 via your subscription with no API key:
 
-    LLM_BASE_URL=http://localhost:8080/v1   LLM_API_KEY=unused   model=grok-4.3
+    LLM_BASE_URL=http://localhost:8080/v1   LLM_API_KEY=unused   model=grok-4.5
 
 It keeps the access token fresh (proactive refresh near JWT expiry, plus a forced
 refresh after a 401), so long multi-hour runs don't die when the token rotates.

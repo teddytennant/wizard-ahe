@@ -23,7 +23,7 @@ const XAI_PROXY_PORT: u16 = 8088;
 const CHATGPT_PROXY_SCRIPT: &str = "chatgpt-oauth-proxy.py";
 const XAI_PROXY_SCRIPT: &str = "xai-oauth-proxy.py";
 const DEFAULT_CHATGPT_MODEL: &str = "gpt-5.2";
-const DEFAULT_XAI_MODEL: &str = "grok-4.3";
+const DEFAULT_XAI_MODEL: &str = "grok-4.5";
 
 pub fn collect(
     theme: &ColorfulTheme,
@@ -43,7 +43,7 @@ pub fn collect(
         .items(&[
             "OpenAI-compatible API (URL + API key)",
             "ChatGPT OAuth (ChatGPT/Codex subscription via `codex login`)",
-            "xAI OAuth (Grok subscription via `wizard --login xai`)",
+            "xAI OAuth (Grok 4.5 via `wizard --login xai`)",
         ])
         .default(0)
         .interact()?;
@@ -127,7 +127,7 @@ fn collect_xai_oauth(
     model: Option<String>,
 ) -> Result<EndpointConfig> {
     println!(
-        "xAI OAuth uses your Grok subscription — no API key.\n\
+        "xAI OAuth uses your Grok 4.5 subscription — no API key.\n\
          Run `wizard --login xai` in the browser if you have not signed in yet."
     );
     ensure_xai_session(theme, wizard_binary)?;

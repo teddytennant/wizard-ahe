@@ -1,15 +1,18 @@
-# Running the AHE evolve loop on wizard
+# Running Grok 4.5–powered AHE on wizard
 
-AHE used as an external lab tool to improve [`wizard`](https://github.com/teddytennant/wizard):
-it runs wizard over a task set in Docker, analyzes failures, has a meta-model
-rewrite wizard's **harness bundle** — system prompt, tool descriptions, skills,
-subagents — and re-measures, producing a before/after pass-rate. Wizard's native
-Rust runtime is untouched; only the externalized bundle evolves.
+**wizard-ahe** is Grok 4.5–powered Agentic Harness Engineering for
+[`wizard`](https://github.com/teddytennant/wizard): AHE as an external lab that
+runs wizard over a task set in Docker, analyzes failures, has a **Grok 4.5**
+meta-agent rewrite wizard's **harness bundle** — system prompt, tool
+descriptions, skills, subagents — and re-measures, producing a before/after
+pass-rate. Wizard's native Rust runtime is untouched; only the externalized
+bundle evolves.
 
-The loop is provider-generic: any **OpenAI-compatible endpoint** works, configured
-entirely from `.env` (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`). Local
-llama-server, a cloud API, or the xAI OAuth proxy (appendix) are all just
-different values for those three variables.
+Default brain is **Grok 4.5** (xAI OAuth subscription or API). The loop stays
+provider-generic underneath: any **OpenAI-compatible endpoint** works via
+`.env` (`LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`). Local llama-server, a cloud
+API, or the Grok 4.5 xAI OAuth proxy (appendix) are just different values for
+those three variables.
 
 ## The harness bundle
 
@@ -197,7 +200,7 @@ proxy, and write `.env` for you. Manual values:
 `LLM_MODEL=gpt-5.2`, and `WIZARD_LLM_BASE_URL=http://172.17.0.1:8089/v1` for
 the containers.
 
-### Grok via xAI OAuth subscription (no API key)
+### Grok 4.5 via xAI OAuth subscription (no API key)
 
 wizard's `wizard --login xai` stores a Bearer token (`~/.wizard/xai_oauth.json`)
 for the OpenAI-compatible API at `https://api.x.ai/v1`.
@@ -205,7 +208,7 @@ for the OpenAI-compatible API at `https://api.x.ai/v1`.
 OpenAI-compatible endpoint with auto-refresh (`PORT=8088 python3
 scripts/xai-oauth-proxy.py`). Then it's just .env values for the normal
 configs: `LLM_BASE_URL=http://localhost:8088/v1`,
-`LLM_API_KEY=oauth-via-proxy`, `LLM_MODEL=grok-4.3`, and
+`LLM_API_KEY=oauth-via-proxy`, `LLM_MODEL=grok-4.5`, and
 `WIZARD_LLM_BASE_URL=http://172.17.0.1:8088/v1` (docker bridge IP) for the
 containers.
 
