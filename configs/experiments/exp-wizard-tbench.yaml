@@ -11,7 +11,7 @@ _tags: ["wizard", "docker", "terminal-bench", "openai-compatible"]
 # (pull them ahead of a run to stay inside build_timeout_sec).
 path: "./dataset/tbench-sample"
 
-max_iterations: 6
+max_iterations: 12
 # Stop exactly at 100% pass@1 — this split is genuinely hard for grok-4.5, so
 # unlike the local wizard set the target is meaningful, not a baseline no-op.
 target_pass_rate: 1.0
