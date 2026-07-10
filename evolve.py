@@ -502,6 +502,14 @@ def _build_harbor_cmd(config: dict, workspace_dir: Path, agent_config_filename: 
     if harbor_cfg.get("force_build"):
         cmd.append("--force-build")
 
+    # Harbor's default teardown is `compose down --rmi all`, which deletes the
+    # task image after EVERY trial. For registry tasks with prebuilt images
+    # (multi-GB ghcr pulls) that means re-downloading the image per trial and
+    # eval exceptions whenever the network hiccups. `no_delete: true` keeps
+    # images cached across trials (containers are still removed).
+    if harbor_cfg.get("no_delete"):
+        cmd.append("--no-delete")
+
     return cmd
 
 

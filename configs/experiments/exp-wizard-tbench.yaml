@@ -30,6 +30,10 @@ harbor:
   # every wizard step round-trips the personal-subscription OAuth proxy.
   n_concurrent: 4
   force_build: false
+  # Keep prebuilt ghcr images cached across trials; harbor's default teardown
+  # (`down --rmi all`) re-pulls gigabytes per trial and turns network blips
+  # into eval exceptions (hit live: 4 RuntimeErrors in one iteration).
+  no_delete: true
 
 source_config_dir: "agents/wizard_harness"
 agent_config_filename: "system_prompt.md"
